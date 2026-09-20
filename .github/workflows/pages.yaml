@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download libraries and fonts
+        run: |
+          set -e
+          mkdir -p fonts
+          curl -fsSL --retry 3 https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js -o peerjs.min.js
+          curl -fsSL --retry 3 https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js -o qrcode.min.js
+          curl -fsSL --retry 3 https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js -o jsQR.js
+          for w in 400 500 600 700; do
+            for s in arabic latin; do
+              f="ibm-plex-sans-arabic-$s-$w-normal.woff2"
+              curl -fsSL --retry 2 "https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-arabic/files/$f" -o "fonts/$f" || rm -f "fonts/$f"
+            done
+          done
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
